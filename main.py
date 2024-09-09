@@ -23,7 +23,7 @@ def wait_for_countdown_to_finish(driver, timeout=60):
         WebDriverWait(driver, timeout).until(
             EC.invisibility_of_element_located((By.ID, "countdown"))
         )
-        print("Countdown finished.")
+        # print("Countdown finished.")
     except Exception as e:
         print(f"Error waiting for countdown: {e}")
 
@@ -55,48 +55,46 @@ driver.switch_to.window(window_handles[-1])
 
 
 buttons = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'button.notebutton')))
-print(f"Found {len(buttons)} buttons.")
+# print(f"Found {len(buttons)} buttons.")
 
 for i, button in enumerate(buttons):
     background_color = button.value_of_css_property('background-color')
-    print(f"Button {i} background color: {background_color}")
+    # print(f"Button {i} background color: {background_color}")
 
     if background_color == 'rgba(0, 170, 0, 1)':
-        print(f"Clicking button {i}...")
+        # print(f"Clicking button {i}...")
         button.click()
 
-        # Switch to the new popup window
         window_handles = driver.window_handles
         driver.switch_to.window(window_handles[-1])
         wait_for_countdown_to_finish(driver)
-        student_name_element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[5]/div[1]/span')))
-        student_name = student_name_element.text
+        student_name_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div.cdiv > div:nth-child(1) > span')))
+        student_name = student_name_element.text.strip()
+        # print(f"CSS Selected Student Name: {student_name}")
+        # student_name_element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[5]/div[1]/span')))
+        # student_name = student_name_element.text
+        # print(f"XPath Selected Student Name: {student_name}")
+
 
         driver.execute_script("window.open('https://server.thecoderschool.com/portal/portalsearch.php', '_blank');")
         window_handles = driver.window_handles
-        driver.switch_to.window(window_handles[-1])  # Switch to the new tab
+        driver.switch_to.window(window_handles[-1])
 
-        # Enter the student's name into the search field
         search_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div#studentdiv input#student')))
         search_input.send_keys(student_name)
 
-        # Click the search button
         search_button = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/form/div/div/p/button')))
         driver.execute_script("document.querySelector('li').style.display = 'none';")
         search_button.click()
 
-        # Click the student’s page link
         student_page_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[3]/div[2]/div[1]/div[2]')))
-        print("click student page link")
+        # print("click student page link")
         student_page_link.click()
 
-        # Close the previous tab
         driver.close()
 
-        # Switch to the new tab with the student's page
         window_handles = driver.window_handles
-        driver.switch_to.window(window_handles[-1])  # Switch to the new tab
-        # Wait for the student's page to load and extract the required information
+        driver.switch_to.window(window_handles[-1])
         concepts = wait.until(
             EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/table/tbody/tr[2]/td/p[1]'))).text
         previous_note = wait.until(
@@ -107,46 +105,53 @@ for i, button in enumerate(buttons):
         # print("Previous Note:", previous_note)
         response_note = requests.post(API_URL, json={"student_name":student_name, "previous_note": previous_note, "concepts": concepts})
         note = response_note.json()
-        print(note)
+        # print(note)
         driver.close()
         window_handles = driver.window_handles
         driver.switch_to.window(window_handles[-1])
+
+        working_concepts_part = concepts.split("Working Concepts:")[1].split("Session Notes:")[0].strip()
+
+        concepts_list = [concept.strip() for concept in working_concepts_part.split(",")]
+
+        for concept in concepts_list:
+            try:
+                add_concept_input = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="addconcept"]')))
+                add_concept_input.clear()
+                add_concept_input.send_keys(concept)
+
+                button = driver.find_element(By.CLASS_NAME, 'gobutton')
+                button.click()
+            except Exception as e:
+                print(e)
         # Fill out the notes form
         try:
             iframe = wait.until(EC.presence_of_element_located((By.ID, "note_ifr")))
-
             driver.switch_to.frame(iframe)
-
-            # Now locate the editable area inside the iframe
-            # Note: The actual selector will depend on the structure of the iframe's content
-            # For example, you might need to locate a <body> or <div> element inside the iframe
             try:
-                editable_area = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "body")))
-                editable_area.send_keys(note)
-                print("Text input completed.")
+                editable_area = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "body > p")))
+                # editable_area.send_keys(note)
+                driver.execute_script(f"document.querySelector('body > p').innerText = \"{note}\";")
+                # print("Text input completed.")
             except Exception as e:
                 print(f"Error interacting with iframe content: {e}")
 
             driver.switch_to.default_content()
-            dropdown_menu = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="studentinterest"]')))
+            dropdown_menu = wait.until(EC.element_to_be_clickable((By.ID, 'studentinterest')))
             dropdown_menu.click()
-            option = wait.until(
-                EC.element_to_be_clickable((By.XPATH, '/html/body/div[5]/div[5]/form[3]/p[4]/select/option[2]')))
+            option = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'option[value="green"]')))
             option.click()
 
-            # Continue with the rest of your code (e.g., submit the form)
-            time.sleep(200)
-            submit_button = wait.until(EC.element_to_be_clickable((By.ID, "submit_note_button")))
+            submit_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"].gobutton')))
             #submit_button.click()
-            print("Form submitted.")
+            time.sleep(30)
+            driver.close()
+            # print("Form submitted.")
         except Exception as e:
             print(f"Error filling out form: {e}")
 
-        # Switch back to the original window
         driver.switch_to.window(window_handles[0])
-        print("Switched back to the main window.")
-
-        # Optional: Wait before clicking the next button
+        # print("Switched back to the main window.")
         time.sleep(2)
 
     else:
