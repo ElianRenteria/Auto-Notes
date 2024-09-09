@@ -49,6 +49,7 @@ northsandiego_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//butto
 northsandiego_button.click()
 notes_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.toolbutton')))
 notes_button.click()
+driver.close()
 window_handles = driver.window_handles
 driver.switch_to.window(window_handles[-1])
 
@@ -68,6 +69,48 @@ for i, button in enumerate(buttons):
         window_handles = driver.window_handles
         driver.switch_to.window(window_handles[-1])
         wait_for_countdown_to_finish(driver)
+        student_name_element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[5]/div[1]/span')))
+        student_name = student_name_element.text
+
+        driver.execute_script("window.open('https://server.thecoderschool.com/portal/portalsearch.php', '_blank');")
+        window_handles = driver.window_handles
+        driver.switch_to.window(window_handles[-1])  # Switch to the new tab
+
+        # Enter the student's name into the search field
+        search_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div#studentdiv input#student')))
+        search_input.send_keys(student_name)
+
+        # Click the search button
+        search_button = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/form/div/div/p/button')))
+        driver.execute_script("document.querySelector('li').style.display = 'none';")
+        search_button.click()
+
+        # Click the student’s page link
+        student_page_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[3]/div[2]/div[1]/div[2]')))
+        print("click student page link")
+        student_page_link.click()
+
+        # Close the previous tab
+        driver.close()
+
+        # Switch to the new tab with the student's page
+        window_handles = driver.window_handles
+        driver.switch_to.window(window_handles[-1])  # Switch to the new tab
+        # Wait for the student's page to load and extract the required information
+        concepts = wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/table/tbody/tr[2]/td/p[1]'))).text
+        previous_note = wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/table/tbody/tr[2]/td/p[2]'))).text
+
+        # Print or use the extracted information
+        # print("Concepts:", concepts)
+        # print("Previous Note:", previous_note)
+        response_note = requests.post(API_URL, json={"student_name":student_name, "previous_note": previous_note, "concepts": concepts})
+        note = response_note.json()
+        print(note)
+        driver.close()
+        window_handles = driver.window_handles
+        driver.switch_to.window(window_handles[-1])
         # Fill out the notes form
         try:
             iframe = wait.until(EC.presence_of_element_located((By.ID, "note_ifr")))
@@ -79,12 +122,17 @@ for i, button in enumerate(buttons):
             # For example, you might need to locate a <body> or <div> element inside the iframe
             try:
                 editable_area = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "body")))
-                editable_area.send_keys("Auto-generated notes based on previous data.")
+                editable_area.send_keys(note)
                 print("Text input completed.")
             except Exception as e:
                 print(f"Error interacting with iframe content: {e}")
 
             driver.switch_to.default_content()
+            dropdown_menu = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="studentinterest"]')))
+            dropdown_menu.click()
+            option = wait.until(
+                EC.element_to_be_clickable((By.XPATH, '/html/body/div[5]/div[5]/form[3]/p[4]/select/option[2]')))
+            option.click()
 
             # Continue with the rest of your code (e.g., submit the form)
             time.sleep(200)
