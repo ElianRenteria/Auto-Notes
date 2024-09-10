@@ -143,8 +143,8 @@ for i, button in enumerate(buttons):
             option.click()
 
             submit_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"].gobutton')))
-            submit_button.click()
-            time.sleep(3)
+            # submit_button.click()
+            time.sleep(30)
             driver.close()
             # print("Form submitted.")
         except Exception as e:
