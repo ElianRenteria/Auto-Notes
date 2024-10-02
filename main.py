@@ -16,6 +16,7 @@ load_dotenv()
 EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 API_URL = os.getenv('API_URL')
+API_KEY = os.getenv('KEY')
 
 
 def wait_for_countdown_to_finish(driver, timeout=60):
@@ -103,7 +104,7 @@ for i, button in enumerate(buttons):
         # Print or use the extracted information
         # print("Concepts:", concepts)
         # print("Previous Note:", previous_note)
-        response_note = requests.post(API_URL, json={"student_name":student_name, "previous_note": previous_note, "concepts": concepts})
+        response_note = requests.post(API_URL, json={"student_name":student_name, "previous_note": previous_note, "concepts": concepts, "key": API_KEY})
         note = response_note.json()
         # print(note)
         driver.close()
