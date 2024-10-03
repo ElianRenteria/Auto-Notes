@@ -106,7 +106,7 @@ for i, button in enumerate(buttons):
         # print("Previous Note:", previous_note)
         response_note = requests.post(API_URL, json={"student_name":student_name, "previous_note": previous_note, "concepts": concepts, "key": API_KEY})
         note = response_note.json()
-        # print(note)
+        print(note)
         driver.close()
         window_handles = driver.window_handles
         driver.switch_to.window(window_handles[-1])
@@ -131,9 +131,12 @@ for i, button in enumerate(buttons):
             driver.switch_to.frame(iframe)
             try:
                 editable_area = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "body > p")))
-                # editable_area.send_keys(note)
-                driver.execute_script(f"document.querySelector('body > p').innerText = \"{note}\";")
-                # print("Text input completed.")
+                # Sanitize the text to escape any special characters
+                sanitized_note = note.replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+
+                # Inject sanitized text using JavaScript
+                driver.execute_script(f"document.querySelector('body > p').innerText = \"{sanitized_note}\";")
+                #print("Text input completed.")
             except Exception as e:
                 print(f"Error interacting with iframe content: {e}")
 
